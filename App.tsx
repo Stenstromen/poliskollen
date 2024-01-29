@@ -5,7 +5,7 @@
  * @format
  */
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import type {PropsWithChildren} from 'react';
 import {
   SafeAreaView,
@@ -15,15 +15,11 @@ import {
   Text,
   useColorScheme,
   View,
+  useWindowDimensions,
 } from 'react-native';
-
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import cheerio from 'react-native-cheerio';
+import RenderHtml from 'react-native-render-html';
+import MapView from 'react-native-maps';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -31,13 +27,17 @@ type SectionProps = PropsWithChildren<{
 
 function Section({children, title}: SectionProps): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
+  const textStyle = {
+    backgroundColor: isDarkMode ? '#E1E1E1' : '#FFFFFF',
+    color: isDarkMode ? '#E1E1E1' : '#FFFFFF',
+  };
   return (
     <View style={styles.sectionContainer}>
       <Text
         style={[
           styles.sectionTitle,
           {
-            color: isDarkMode ? Colors.white : Colors.black,
+            color: textStyle.color,
           },
         ]}>
         {title}
@@ -46,7 +46,7 @@ function Section({children, title}: SectionProps): React.JSX.Element {
         style={[
           styles.sectionDescription,
           {
-            color: isDarkMode ? Colors.light : Colors.dark,
+            color: textStyle.color,
           },
         ]}>
         {children}
@@ -56,11 +56,61 @@ function Section({children, title}: SectionProps): React.JSX.Element {
 }
 
 function App(): React.JSX.Element {
+  const [html, setHtml] = useState('');
+  const [data, setData] = useState<
+    {
+      id: number;
+      datetime: string;
+      name: string;
+      summary: string;
+      url: string;
+      type: string;
+      location: {
+        name: string;
+        gps: string;
+      };
+    }[]
+  >([]);
+
+  function getEvents(handelse: string) {
+    fetch(`https://polisen.se/${handelse}`)
+      .then(response => response.text())
+      .then(htmlContent => {
+        const $ = cheerio.load(htmlContent);
+
+        const divContent = $('.text-body.editorial-html').html();
+
+        console.log(divContent);
+        setHtml(divContent);
+      });
+  }
+
+  useEffect(() => {
+    fetch('https://polisen.se/api/events').then(response => {
+      response.json().then(res => {
+        setData(res);
+        console.log(res);
+      });
+    });
+  }, []);
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+    backgroundColor: isDarkMode ? '#E1E1E1' : '#FFFFFF',
   };
+
+  const source = {
+    html: html,
+  };
+
+  const {width} = useWindowDimensions();
+
+  const [region, setRegion] = useState({
+    latitude: 59.329324,
+    longitude: 18.068581,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
 
   return (
     <SafeAreaView style={backgroundStyle}>
@@ -71,25 +121,34 @@ function App(): React.JSX.Element {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={backgroundStyle}>
-        <Header />
         <View
           style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
+            backgroundColor: isDarkMode ? '#E1E1E1' : '#FFFFFF',
           }}>
+          <MapView
+            style={{height: 200}}
+            initialRegion={region}
+            region={region}
+          />
+          <RenderHtml contentWidth={width} source={source} />
           <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
+            {data.map(({id, name, url, location}) => (
+              <View key={id}>
+                <Text
+                  onPress={() => {
+                    getEvents(url);
+                    setRegion({
+                      latitude: parseFloat(location.gps.split(',')[0]),
+                      longitude: parseFloat(location.gps.split(',')[1]),
+                      latitudeDelta: 0.0922,
+                      longitudeDelta: 0.0421,
+                    });
+                  }}>
+                  {name}
+                </Text>
+              </View>
+            ))}
           </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
         </View>
       </ScrollView>
     </SafeAreaView>
