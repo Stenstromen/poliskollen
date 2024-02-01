@@ -14,14 +14,15 @@
   "typeCoverage": {
     "ignoreFiles": [
       "coverage-ts/**",
-      "metro.config.js"
+      "metro.config.js",
+      "babel.config.js",
+      "jest.config.js"
     ]
   },
   "dependencies": {
     "cheerio": "npm:react-native-cheerio@^1.0.0-rc.4",
     "react": "18.2.0",
     "react-native": "0.73.3",
-    "react-native-cheerio": "^1.0.0-rc.4",
     "react-native-maps": "^1.10.0",
     "react-native-render-html": "^6.3.4",
     "react-native-webview": "^13.6.4"
