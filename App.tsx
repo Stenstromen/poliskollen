@@ -19,7 +19,7 @@ import {
   TouchableOpacity,
   Button,
 } from 'react-native';
-import cheerio from 'react-native-cheerio';
+import cheerio from 'cheerio';
 import RenderHtml from 'react-native-render-html';
 import MapView from 'react-native-maps';
 
@@ -52,14 +52,17 @@ function getEvents(
   fetch(`https://polisen.se/${handelse}`)
     .then(response => response.text())
     .then(htmlContent => {
-      const $ = cheerio.load(htmlContent);
+      const $: cheerio.Root = cheerio.load(htmlContent);
       const preamble = $('.preamble').html() || ''; // Extract preamble
       const divContent = $('.text-body.editorial-html').html() || ''; // Extract div content
 
       callback({preamble, divContent}); // Pass an object with both contents to the callback
     })
-    .catch(error => {
+    .catch((error: unknown) => {
       console.error('Error fetching events:', error);
+      if (error instanceof Error) {
+        console.log(error.message);
+      }
       callback({preamble: '', divContent: ''}); // Handle errors
     });
 }
@@ -72,7 +75,7 @@ function EventItem({
   url,
 }: EventItemProps): JSX.Element {
   const [expanded, setExpanded] = useState<Boolean>(false);
-  const [htmlContent, setHtmlContent] = useState<any>('');
+  const [htmlContent, setHtmlContent] = useState<string>('');
   const [title2, setTitle2] = useState<string>('');
   const {width} = useWindowDimensions();
 
@@ -151,7 +154,7 @@ function App(): React.JSX.Element {
       .then(response => response.json())
       .then(setData)
       .catch(console.error);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateTimeFilter, locationFilter, typeFilter]);
   const isDarkMode = useColorScheme() === 'dark';
 
