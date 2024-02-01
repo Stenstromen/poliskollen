@@ -11,6 +11,12 @@
     "test": "jest",
     "ts-coverage": "typescript-coverage-report"
   },
+  "typeCoverage": {
+    "ignoreFiles": [
+      "coverage-ts/**",
+      "metro.config.js"
+    ]
+  },
   "dependencies": {
     "cheerio": "npm:react-native-cheerio@^1.0.0-rc.4",
     "react": "18.2.0",
