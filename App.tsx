@@ -18,10 +18,13 @@ import {
   useWindowDimensions,
   TouchableOpacity,
   Button,
+  Animated,
 } from 'react-native';
 import cheerio from 'cheerio';
 import RenderHtml from 'react-native-render-html';
 import MapView from 'react-native-maps';
+import MultiSelect from 'react-native-multiple-select';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface ApiResult {
   id: number;
@@ -44,6 +47,105 @@ type EventItemProps = PropsWithChildren<{
   url: string;
   onPress?: () => void;
 }>;
+
+const locations = [
+  {id: 'Stockholm', name: 'Stockholm'},
+  {id: 'Göteborg', name: 'Göteborg'},
+  {id: 'Malmö', name: 'Malmö'},
+];
+
+const eventTypes = [
+  {id: 'Brand', name: 'Brand'},
+  {id: 'Inbrott', name: 'Inbrott'},
+  {id: 'Detonation', name: 'Detonation'},
+];
+
+function FilterComponent({
+  dateTimeFilter,
+  setDateTimeFilter,
+  locationFilter,
+  setLocationFilter,
+  typeFilter,
+  setTypeFilter,
+}: {
+  dateTimeFilter: string;
+  setDateTimeFilter: (dateTimeFilter: string) => void;
+  locationFilter: string;
+  setLocationFilter: (locationFilter: string) => void;
+  typeFilter: string;
+  setTypeFilter: (typeFilter: string) => void;
+}): JSX.Element {
+  // Handle Date Change
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (selectedDate) {
+      // Format the date to string if needed, here we just use ISO string for simplicity
+      setDateTimeFilter(selectedDate.toISOString().split('T')[0]);
+      console.log(selectedDate.toISOString());
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <DateTimePicker
+        testID="dateTimePicker"
+        value={dateTimeFilter ? new Date(dateTimeFilter) : new Date()}
+        mode="date"
+        display="default"
+        onChange={handleDateChange}
+        timeZoneName={'Europe/Stockholm'}
+        maximumDate={new Date()}
+      />
+
+      <MultiSelect
+        hideTags
+        items={locations}
+        uniqueKey="id"
+        onSelectedItemsChange={selectedItems =>
+          setLocationFilter(selectedItems.join(';'))
+        }
+        selectedItems={locationFilter.split(';')}
+        selectText="Pick Locations"
+        searchInputPlaceholderText="Search Locations..."
+        onChangeInput={text => console.log(text)}
+        altFontFamily="ProximaNova-Light"
+        tagRemoveIconColor="#000"
+        tagBorderColor="#000"
+        tagTextColor="#000"
+        selectedItemTextColor="#000"
+        selectedItemIconColor="#000"
+        itemTextColor="#CCC"
+        displayKey="name"
+        searchInputStyle={{color: '#000'}}
+        submitButtonColor="#000"
+        submitButtonText="Submit"
+      />
+
+      <MultiSelect
+        hideTags
+        items={eventTypes}
+        uniqueKey="id"
+        onSelectedItemsChange={selectedItems =>
+          setTypeFilter(selectedItems.join(';'))
+        }
+        selectedItems={typeFilter.split(';')}
+        selectText="Pick Event Types"
+        searchInputPlaceholderText="Search Event Types..."
+        onChangeInput={text => console.log(text)}
+        altFontFamily="ProximaNova-Light"
+        tagRemoveIconColor="#000"
+        tagBorderColor="#000"
+        tagTextColor="#000"
+        selectedItemTextColor="#000"
+        selectedItemIconColor="#000"
+        itemTextColor="#CCC"
+        displayKey="name"
+        searchInputStyle={{color: '#000'}}
+        submitButtonColor="#000"
+        submitButtonText="Submit"
+      />
+    </View>
+  );
+}
 
 function getEvents(
   handelse: string,
@@ -74,41 +176,70 @@ function EventItem({
   header,
   url,
 }: EventItemProps): JSX.Element {
-  const [expanded, setExpanded] = useState<Boolean>(false);
+  // Change expanded to use Animated.Value
+  const [expanded, setExpanded] = useState(false); // Track expanded state
+  const animationHeight = new Animated.Value(0); // Initial value for height
+
   const [htmlContent, setHtmlContent] = useState<string>('');
   const [title2, setTitle2] = useState<string>('');
   const {width} = useWindowDimensions();
 
-  function toggleItem() {
+  // Animation function to run when toggling expansion
+  const toggleItem = () => {
     setExpanded(!expanded);
 
     if (!expanded) {
+      // If not expanded, expand the item
+      Animated.timing(animationHeight, {
+        toValue: 1, // Fully expanded
+        duration: 300, // Duration of animation
+        useNativeDriver: false, // Height does not support native driver
+      }).start();
+
       getEvents(url, ({preamble, divContent}) => {
         setHtmlContent(divContent);
         setTitle2(preamble);
       });
+    } else {
+      // If expanded, collapse the item
+      Animated.timing(animationHeight, {
+        toValue: 0, // Fully collapsed
+        duration: 300, // Duration of animation
+        useNativeDriver: false, // Height does not support native driver
+      }).start();
     }
-  }
+  };
+
+  // Calculate height or any other property for animation
+  const interpolatedHeight = animationHeight.interpolate({
+    inputRange: [0, 1],
+    outputRange: [500, 900], // Adjust the output range based on your content size
+  });
 
   const body = (
-    <View style={styles.accordBody}>
+    <Animated.View // Use Animated.View
+      style={[
+        styles.accordBody,
+        {height: interpolatedHeight}, // Bind animated height
+      ]}>
       {children}
-      <View style={styles.seperator} />
-      <Text style={styles.textSmall}>{header}</Text>
-      <View style={styles.seperator} />
-      {htmlContent ? (
-        <>
-          <RenderHtml
-            contentWidth={width}
-            source={{html: `<strong>${title2}</strong><br/>`}}
-          />
-          <RenderHtml contentWidth={width} source={{html: htmlContent}} />
-        </>
-      ) : (
-        <Text style={styles.textSmall}>Loading...t</Text>
-      )}
-      <Button title="Close" onPress={toggleItem} />
-    </View>
+      <View style={styles.accordBody}>
+        <Text style={styles.textSmall}>{header}</Text>
+        <View style={styles.seperator} />
+        {htmlContent ? (
+          <>
+            <RenderHtml
+              contentWidth={width}
+              source={{html: `<strong>${title2}</strong><br/>`}}
+            />
+            <RenderHtml contentWidth={width} source={{html: htmlContent}} />
+          </>
+        ) : (
+          <Text style={styles.textSmall}>Loading...t</Text>
+        )}
+        <Button title="Close" onPress={toggleItem} />
+      </View>
+    </Animated.View>
   );
 
   return (
@@ -124,9 +255,9 @@ function EventItem({
 
 function App(): React.JSX.Element {
   const [data, setData] = useState<ApiResult[]>([]);
-  const [dateTimeFilter, setDateTimeFilter] = useState('2024-01');
-  const [locationFilter, setLocationFilter] = useState('Stockholm');
-  const [typeFilter, setTypeFilter] = useState('Inbrott');
+  const [dateTimeFilter, setDateTimeFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
 
   const constructApiUrl = () => {
     let url = 'https://polisen.se/api/events';
@@ -154,6 +285,7 @@ function App(): React.JSX.Element {
       .then(response => response.json())
       .then(setData)
       .catch(console.error);
+    console.log(url);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateTimeFilter, locationFilter, typeFilter]);
   const isDarkMode = useColorScheme() === 'dark';
@@ -171,6 +303,14 @@ function App(): React.JSX.Element {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={backgroundStyle}>
+        <FilterComponent
+          dateTimeFilter={dateTimeFilter}
+          setDateTimeFilter={setDateTimeFilter}
+          locationFilter={locationFilter}
+          setLocationFilter={setLocationFilter}
+          typeFilter={typeFilter}
+          setTypeFilter={setTypeFilter}
+        />
         <View
           style={{
             backgroundColor: isDarkMode ? '#E1E1E1' : '#FFFFFF',
@@ -239,6 +379,19 @@ const styles = StyleSheet.create({
   },
   seperator: {
     height: 12,
+  },
+  filterContainer: {
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+  },
+  input: {
+    height: 40,
+    marginBottom: 10,
+    borderWidth: 1,
+    padding: 10,
+  },
+  container: {
+    padding: 20,
   },
 });
 
