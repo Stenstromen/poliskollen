@@ -25,6 +25,12 @@ import RenderHtml from 'react-native-render-html';
 import MapView from 'react-native-maps';
 import MultiSelect from 'react-native-multiple-select';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import {
+  MobileAds,
+  BannerAd,
+  TestIds,
+  BannerAdSize,
+} from 'react-native-google-mobile-ads';
 
 interface ApiResult {
   id: number;
@@ -287,6 +293,14 @@ function App(): React.JSX.Element {
   };
 
   useEffect(() => {
+    MobileAds()
+      .initialize()
+      .then(() => {
+        console.log('Initialized');
+      });
+  }, []);
+
+  useEffect(() => {
     const url = constructApiUrl();
     fetch(url)
       .then(response => response.json())
@@ -307,41 +321,35 @@ function App(): React.JSX.Element {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={backgroundStyle.backgroundColor}
       />
+      {showFilter ? (
+        <View style={styles.filterContainer}>
+          <FilterComponent
+            showDatePicker={showDatePicker}
+            setShowDatePicker={setShowDatePicker}
+            dateTimeFilter={dateTimeFilter}
+            setDateTimeFilter={setDateTimeFilter}
+            locationFilter={locationFilter}
+            setLocationFilter={setLocationFilter}
+            typeFilter={typeFilter}
+            setTypeFilter={setTypeFilter}
+          />
+          <Button title="Göm Filter" onPress={() => setShowFilter(false)} />
+        </View>
+      ) : (
+        <View style={styles.filterContainer}>
+          <Button title="Visa Filter" onPress={() => setShowFilter(true)} />
+        </View>
+      )}
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={backgroundStyle}>
-        {showFilter ? (
-          <View style={styles.filterContainer}>
-            <FilterComponent
-              showDatePicker={showDatePicker}
-              setShowDatePicker={setShowDatePicker}
-              dateTimeFilter={dateTimeFilter}
-              setDateTimeFilter={setDateTimeFilter}
-              locationFilter={locationFilter}
-              setLocationFilter={setLocationFilter}
-              typeFilter={typeFilter}
-              setTypeFilter={setTypeFilter}
-            />
-            <Button title="Göm Filter" onPress={() => setShowFilter(false)} />
-          </View>
-        ) : (
-          <View style={styles.filterContainer}>
-            <Button title="Visa Filter" onPress={() => setShowFilter(true)} />
-          </View>
-        )}
         <View
           style={{
             backgroundColor: isDarkMode ? '#E1E1E1' : '#FFFFFF',
           }}>
           {data.map(({id, name, url, location}) => (
             <>
-              <EventItem
-                key={id}
-                id={id}
-                //title={name.split(',')[1]}
-                title={name}
-                header={name}
-                url={url}>
+              <EventItem key={id} id={id} title={name} header={name} url={url}>
                 <MapView
                   style={{height: 150}}
                   scrollEnabled={false}
@@ -353,6 +361,13 @@ function App(): React.JSX.Element {
                     longitude: parseFloat(location.gps.split(',')[1]),
                     latitudeDelta: 0.0922,
                     longitudeDelta: 0.0421,
+                  }}
+                />
+                <BannerAd
+                  unitId={TestIds.BANNER}
+                  size={BannerAdSize.FULL_BANNER}
+                  requestOptions={{
+                    requestNonPersonalizedAdsOnly: true,
                   }}
                 />
               </EventItem>

@@ -1,4 +1,7 @@
 {
   "name": "poliskollen",
-  "displayName": "poliskollen"
+  "displayName": "poliskollen",
+  "react-native-google-mobile-ads": {
+    "ios_app_id": "ca-app-pub-3940256099942544/2934735716"
+  }
 }

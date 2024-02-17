@@ -24,6 +24,7 @@
     "cheerio": "npm:react-native-cheerio@^1.0.0-rc.4",
     "react": "18.2.0",
     "react-native": "0.73.3",
+    "react-native-google-mobile-ads": "^12.10.0",
     "react-native-maps": "^1.10.0",
     "react-native-multiple-select": "^0.5.12",
     "react-native-render-html": "^6.3.4"
