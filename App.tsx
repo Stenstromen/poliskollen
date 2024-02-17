@@ -61,6 +61,8 @@ const eventTypes = [
 ];
 
 function FilterComponent({
+  showDatePicker,
+  setShowDatePicker,
   dateTimeFilter,
   setDateTimeFilter,
   locationFilter,
@@ -68,6 +70,8 @@ function FilterComponent({
   typeFilter,
   setTypeFilter,
 }: {
+  showDatePicker: boolean;
+  setShowDatePicker: (showDatePicker: boolean) => void;
   dateTimeFilter: string;
   setDateTimeFilter: (dateTimeFilter: string) => void;
   locationFilter: string;
@@ -75,10 +79,8 @@ function FilterComponent({
   typeFilter: string;
   setTypeFilter: (typeFilter: string) => void;
 }): JSX.Element {
-  // Handle Date Change
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (selectedDate) {
-      // Format the date to string if needed, here we just use ISO string for simplicity
       setDateTimeFilter(selectedDate.toISOString().split('T')[0]);
       console.log(selectedDate.toISOString());
     }
@@ -86,15 +88,32 @@ function FilterComponent({
 
   return (
     <View style={styles.container}>
-      <DateTimePicker
-        testID="dateTimePicker"
-        value={dateTimeFilter ? new Date(dateTimeFilter) : new Date()}
-        mode="date"
-        display="default"
-        onChange={handleDateChange}
-        timeZoneName={'Europe/Stockholm'}
-        maximumDate={new Date()}
-      />
+      <Text>Filter Events</Text>
+      {showDatePicker ? (
+        <>
+          <DateTimePicker
+            testID="dateTimePicker"
+            value={dateTimeFilter ? new Date(dateTimeFilter) : new Date()}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+            timeZoneName={'Europe/Stockholm'}
+            maximumDate={new Date()}
+          />
+          <Button
+            title="Dölj datumväljare"
+            onPress={() => setShowDatePicker(false)}
+          />
+        </>
+      ) : (
+        <Button
+          title="Välj datum"
+          onPress={() => {
+            setDateTimeFilter('');
+            setShowDatePicker(true);
+          }}
+        />
+      )}
 
       <MultiSelect
         hideTags
@@ -155,17 +174,17 @@ function getEvents(
     .then(response => response.text())
     .then(htmlContent => {
       const $: cheerio.Root = cheerio.load(htmlContent);
-      const preamble = $('.preamble').html() || ''; // Extract preamble
-      const divContent = $('.text-body.editorial-html').html() || ''; // Extract div content
+      const preamble = $('.preamble').html() || '';
+      const divContent = $('.text-body.editorial-html').html() || '';
 
-      callback({preamble, divContent}); // Pass an object with both contents to the callback
+      callback({preamble, divContent});
     })
     .catch((error: unknown) => {
       console.error('Error fetching events:', error);
       if (error instanceof Error) {
         console.log(error.message);
       }
-      callback({preamble: '', divContent: ''}); // Handle errors
+      callback({preamble: '', divContent: ''});
     });
 }
 
@@ -176,24 +195,21 @@ function EventItem({
   header,
   url,
 }: EventItemProps): JSX.Element {
-  // Change expanded to use Animated.Value
-  const [expanded, setExpanded] = useState(false); // Track expanded state
-  const animationHeight = new Animated.Value(0); // Initial value for height
+  const [expanded, setExpanded] = useState(false);
+  const animationHeight = new Animated.Value(0);
 
   const [htmlContent, setHtmlContent] = useState<string>('');
   const [title2, setTitle2] = useState<string>('');
   const {width} = useWindowDimensions();
 
-  // Animation function to run when toggling expansion
   const toggleItem = () => {
     setExpanded(!expanded);
 
     if (!expanded) {
-      // If not expanded, expand the item
       Animated.timing(animationHeight, {
-        toValue: 1, // Fully expanded
-        duration: 300, // Duration of animation
-        useNativeDriver: false, // Height does not support native driver
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false,
       }).start();
 
       getEvents(url, ({preamble, divContent}) => {
@@ -201,27 +217,16 @@ function EventItem({
         setTitle2(preamble);
       });
     } else {
-      // If expanded, collapse the item
       Animated.timing(animationHeight, {
-        toValue: 0, // Fully collapsed
-        duration: 300, // Duration of animation
-        useNativeDriver: false, // Height does not support native driver
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
       }).start();
     }
   };
 
-  // Calculate height or any other property for animation
-  const interpolatedHeight = animationHeight.interpolate({
-    inputRange: [0, 1],
-    outputRange: [500, 900], // Adjust the output range based on your content size
-  });
-
   const body = (
-    <Animated.View // Use Animated.View
-      style={[
-        styles.accordBody,
-        {height: interpolatedHeight}, // Bind animated height
-      ]}>
+    <Animated.View style={[styles.accordBody]}>
       {children}
       <View style={styles.accordBody}>
         <Text style={styles.textSmall}>{header}</Text>
@@ -230,14 +235,14 @@ function EventItem({
           <>
             <RenderHtml
               contentWidth={width}
-              source={{html: `<strong>${title2}</strong><br/>`}}
+              source={{html: `<h3><strong>${title2}</strong></h3>`}}
             />
             <RenderHtml contentWidth={width} source={{html: htmlContent}} />
           </>
         ) : (
           <Text style={styles.textSmall}>Loading...t</Text>
         )}
-        <Button title="Close" onPress={toggleItem} />
+        <Button title="Stäng" onPress={toggleItem} />
       </View>
     </Animated.View>
   );
@@ -245,8 +250,8 @@ function EventItem({
   return (
     <View key={id} style={styles.accordContainer}>
       <TouchableOpacity style={styles.accordHeader} onPress={toggleItem}>
-        <Text style={styles.accordTitle}>{title}</Text>
-        <Text>ICON HERE</Text>
+        <Text style={styles.accordTitle}>{title.split(',')[1]}</Text>
+        <Text>{title.split(',').pop() + ', ' + title.split(',')[0]}</Text>
       </TouchableOpacity>
       {expanded && body}
     </View>
@@ -255,6 +260,8 @@ function EventItem({
 
 function App(): React.JSX.Element {
   const [data, setData] = useState<ApiResult[]>([]);
+  const [showFilter, setShowFilter] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateTimeFilter, setDateTimeFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -287,7 +294,7 @@ function App(): React.JSX.Element {
       .catch(console.error);
     console.log(url);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateTimeFilter, locationFilter, typeFilter]);
+  }, [dateTimeFilter, locationFilter, typeFilter, showDatePicker]);
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
@@ -303,14 +310,25 @@ function App(): React.JSX.Element {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={backgroundStyle}>
-        <FilterComponent
-          dateTimeFilter={dateTimeFilter}
-          setDateTimeFilter={setDateTimeFilter}
-          locationFilter={locationFilter}
-          setLocationFilter={setLocationFilter}
-          typeFilter={typeFilter}
-          setTypeFilter={setTypeFilter}
-        />
+        {showFilter ? (
+          <View style={styles.filterContainer}>
+            <FilterComponent
+              showDatePicker={showDatePicker}
+              setShowDatePicker={setShowDatePicker}
+              dateTimeFilter={dateTimeFilter}
+              setDateTimeFilter={setDateTimeFilter}
+              locationFilter={locationFilter}
+              setLocationFilter={setLocationFilter}
+              typeFilter={typeFilter}
+              setTypeFilter={setTypeFilter}
+            />
+            <Button title="Göm Filter" onPress={() => setShowFilter(false)} />
+          </View>
+        ) : (
+          <View style={styles.filterContainer}>
+            <Button title="Visa Filter" onPress={() => setShowFilter(true)} />
+          </View>
+        )}
         <View
           style={{
             backgroundColor: isDarkMode ? '#E1E1E1' : '#FFFFFF',
@@ -318,12 +336,18 @@ function App(): React.JSX.Element {
           {data.map(({id, name, url, location}) => (
             <>
               <EventItem
+                key={id}
                 id={id}
-                title={name.split(',')[1]}
+                //title={name.split(',')[1]}
+                title={name}
                 header={name}
                 url={url}>
                 <MapView
-                  style={{height: 200}}
+                  style={{height: 150}}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  rotateEnabled={false}
+                  pitchEnabled={false}
                   region={{
                     latitude: parseFloat(location.gps.split(',')[0]),
                     longitude: parseFloat(location.gps.split(',')[1]),
