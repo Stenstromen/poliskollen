@@ -28,7 +28,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {
   MobileAds,
   BannerAd,
-  TestIds,
   BannerAdSize,
 } from 'react-native-google-mobile-ads';
 
@@ -257,7 +256,9 @@ function EventItem({
     <View key={id} style={styles.accordContainer}>
       <TouchableOpacity style={styles.accordHeader} onPress={toggleItem}>
         <Text style={styles.accordTitle}>{title.split(',')[1]}</Text>
-        <Text>{title.split(',').pop() + ', ' + title.split(',')[0]}</Text>
+        <Text style={styles.accordSideTitle}>
+          {title.split(',').pop() + ', ' + title.split(',')[0]}
+        </Text>
       </TouchableOpacity>
       {expanded && body}
     </View>
@@ -312,7 +313,7 @@ function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
-    backgroundColor: isDarkMode ? '#E1E1E1' : '#FFFFFF',
+    backgroundColor: isDarkMode ? 'green' : '#FFFFFF',
   };
 
   return (
@@ -364,10 +365,10 @@ function App(): React.JSX.Element {
                   }}
                 />
                 <BannerAd
-                  unitId={TestIds.BANNER}
+                  unitId={'ca-app-pub-3571877886198893/4252859131'}
                   size={BannerAdSize.FULL_BANNER}
-                  requestOptions={{
-                    requestNonPersonalizedAdsOnly: true,
+                  onAdFailedToLoad={error => {
+                    console.error('Ad failed to load:', error);
                   }}
                 />
               </EventItem>
@@ -409,6 +410,11 @@ const styles = StyleSheet.create({
   },
   accordTitle: {
     fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  accordSideTitle: {
+    color: '#fff',
   },
   accordBody: {
     padding: 12,
